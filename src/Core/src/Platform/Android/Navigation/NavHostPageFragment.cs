@@ -16,6 +16,7 @@ using AndroidX.Navigation.Fragment;
 using AndroidX.Navigation.UI;
 using Microsoft.Maui.Handlers;
 using AView = Android.Views.View;
+using FragmentTransit = Android.App.FragmentTransit;
 
 namespace Microsoft.Maui
 {
@@ -83,9 +84,12 @@ namespace Microsoft.Maui
 				}
 			}
 
-			var thing = AnimationUtils.LoadAnimation(Context, id);
+			if (id <= 0)
+				return base.OnCreateAnimation(transit, enter, id);
+
+			var customAnimation = AnimationUtils.LoadAnimation(Context, id);
 			var animation =
-				thing ?? base.OnCreateAnimation(transit, enter, id);
+				customAnimation ?? base.OnCreateAnimation(transit, enter, id);
 			
 			return animation;
 		}
@@ -131,7 +135,7 @@ namespace Microsoft.Maui
 
 			var titledElement = NavDestination.Page as ITitledElement;
 
-			NavDestination.NavigationLayout.Toolbar.Title = titledElement?.Title;
+			//NavDestination.NavigationLayout.Toolbar.Title = titledElement?.Title;
 
 			if (Context.GetActivity() is AppCompatActivity aca)
 			{

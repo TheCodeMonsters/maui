@@ -23,6 +23,9 @@ namespace Microsoft.Maui
 		Toolbar? _toolbar;
 		AppBarLayout? _appBar;
 
+		internal NavGraphDestination NavGraphDestination =>
+			(NavGraphDestination)NavHost.NavController.Graph;
+
 		internal IView? VirtualView { get; private set; }
 		internal INavigationView? NavigationView { get; private set; }
 
@@ -173,9 +176,17 @@ namespace Microsoft.Maui
 			//	});
 		}
 
-		public void OnDestinationChanged(NavController p0, NavDestination p1, Bundle p2)
+		#region IOnDestinationChangedListener
+		void NavController.IOnDestinationChangedListener.OnDestinationChanged(
+			NavController p0, NavDestination p1, Bundle p2)
 		{
+			if (p1 is FragmentNavDestination fnd)
+			{
+				var titledElement = fnd.Page as ITitledElement;
+				Toolbar.Title = titledElement?.Title;
+			}
 		}
+		#endregion
 
 
 

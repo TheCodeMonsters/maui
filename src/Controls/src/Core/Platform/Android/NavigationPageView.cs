@@ -31,7 +31,7 @@ namespace Microsoft.Maui.Controls.Platform
 	{
 		ActionBarDrawerToggle _drawerToggle;
 		FragmentManager _fragmentManager;
-		int _statusbarHeight;
+		//int _statusbarHeight;
 		MaterialToolbar _toolbar;
 		AppBarLayout _appBar;
 		ToolbarTracker _toolbarTracker;
@@ -469,7 +469,7 @@ namespace Microsoft.Maui.Controls.Platform
 				_imageSource = source;
 				_titleIconView.SetImageResource(global::Android.Resource.Color.Transparent);
 
-				ShellImagePart.LoadImage(source, MauiContext, (result) =>
+				ImageSourceLoader.LoadImage(source, MauiContext, (result) =>
 				{
 					_titleIconView.SetImageDrawable(result.Value);
 					AutomationPropertiesProvider.AccessibilitySettingsChanged(_titleIconView, source);

@@ -16,15 +16,44 @@ namespace Microsoft.Maui.Controls
 		{
 			PushRequested += (_, args) =>
 			{
-				var request = new MauiNavigationRequestedEventArgs(args.Page, args.BeforePage, args.Animated);
-				Handler?.Invoke(nameof(INavigationView.PushAsync), request);
+				List<IView> newStack = new List<IView>((this as INavigationView).NavigationStack);
+				var request = new MauiNavigationRequestedEventArgs(newStack, args.Animated);
+				Handler?.Invoke(nameof(INavigationView.RequestNavigation), request);
 
 			};
 
 			PopRequested += (_, args) =>
 			{
-				var request = new MauiNavigationRequestedEventArgs(args.Page, args.BeforePage, args.Animated);
-				Handler?.Invoke(nameof(INavigationView.PopAsync), request);
+				List<IView> newStack = new List<IView>((this as INavigationView).NavigationStack);
+				newStack.Remove(args.Page);
+				var request = new MauiNavigationRequestedEventArgs(newStack, args.Animated);
+				Handler?.Invoke(nameof(INavigationView.RequestNavigation), request);
+			};
+
+			RemovePageRequested += (_, args) =>
+			{
+				List<IView> newStack = new List<IView>((this as INavigationView).NavigationStack);
+				newStack.Remove(args.Page);
+				var request = new MauiNavigationRequestedEventArgs(newStack, args.Animated);
+				Handler?.Invoke(nameof(INavigationView.RequestNavigation), request);
+			};
+
+			_insertPageBeforeRequested += (_, args) =>
+			{
+				// TODO MAUI why is this the only one where the stack insert is delayed?
+				Device.BeginInvokeOnMainThread(() =>
+				{
+					List<IView> newStack = new List<IView>((this as INavigationView).NavigationStack);
+					var request = new MauiNavigationRequestedEventArgs(newStack, args.Animated);
+					Handler?.Invoke(nameof(INavigationView.RequestNavigation), request);
+				});
+			};
+
+			PopToRootRequested += (_, args) =>
+			{
+				List<IView> newStack = new List<IView>((this as INavigationView).NavigationStack);
+				var request = new MauiNavigationRequestedEventArgs(newStack, args.Animated);
+				Handler?.Invoke(nameof(INavigationView.RequestNavigation), request);
 			};
 		}
 
@@ -50,6 +79,23 @@ namespace Microsoft.Maui.Controls
 			return Frame.Size;
 		}
 
+		//void INavigationView.NavigationFinished()
+		//{
+		//	throw new NotImplementedException();
+		//}
+
+		Task<IView> INavigationView.PopModalAsync()
+		{
+			throw new NotImplementedException();
+		}
+
+		Task<IView> INavigationView.PopModalAsync(bool animated)
+		void INavigationView.RequestNavigation(MauiNavigationRequestedEventArgs eventArgs)
+		{
+			throw new NotImplementedException();
+			Handler?.Invoke(nameof(INavigationView.RequestNavigation), eventArgs);
+		}
+		
 		IElementHandler _previousHandler;
 		protected override void OnHandlerChanged()
 		{
@@ -79,42 +125,101 @@ namespace Microsoft.Maui.Controls
 		async Task<IView> INavigationView.PopAsync(bool animated) =>
 			await this.PopAsync(animated);
 
-		Task<IView> INavigationView.PopModalAsync()
+		void INavigationView.NavigationFinished(IReadOnlyList<IView> newStack)
 		{
-			throw new NotImplementedException();
-		}
+			for (int i = 0; i < newStack.Count; i++)
+			{
+				var element = (Element)newStack[i];
 
-		Task<IView> INavigationView.PopModalAsync(bool animated)
-		{
-			throw new NotImplementedException();
-		}
+				if (InternalChildren.Count < i)
+					InternalChildren.Add(element);
+				else if (InternalChildren[i] != element)
+				{
+					int index = InternalChildren.IndexOf(element);
+					if (index >= 0)
+					{
+						// TODO MAUI Do we support move?
+						InternalChildren.Move(index, i);
+					}
+					else
+					{
+						InternalChildren.Insert(i, element);
+					}
+				}
+			}
 
-		Task INavigationView.PushAsync(IView page) =>
-			(this as INavigationView).PushAsync(page, true);
+			while (InternalChildren.Count > newStack.Count)
+			{
+				InternalChildren.RemoveAt(InternalChildren.Count - 1);
+			}
 
-		Task INavigationView.PushAsync(IView page, bool animated)
-		{
-			return this.PushAsync((Page)page, animated);
-		}
+			CurrentPage = (Page)newStack[newStack.Count - 1];
+			// TODO MAUI Create sync version of this since there's no animation
+			//RemoveAsyncInner(CurrentPage, false, true, true)
+			//		.FireAndForget((e) =>
+			//	{
+			//		//Log.Warning(nameof(NavigationViewHandler), $"{e}");
+			//	});
 
-		Task INavigationView.PushModalAsync(IView page)
-		{
-			throw new NotImplementedException();
-		}
-
-		Task INavigationView.PushModalAsync(IView page, bool animated)
-		{
-			throw new NotImplementedException();
-		}
-
-		void INavigationView.RemovePage(IView page)
-		{
-			throw new NotImplementedException();
+			// TODO MAUI calculate this out better
+			//PopAsync()
+			//	.FireAndForget((e) =>
+			//	{
+			//		//Log.Warning(nameof(NavigationViewHandler), $"{e}");
+			//	});
 		}
 
 		IView Content => this.CurrentPage;
 
 		IReadOnlyList<IView> INavigationView.ModalStack => throw new NotImplementedException();
+		//void INavigationView.InsertPageBefore(IView page, IView before)
+		//{
+		//	throw new NotImplementedException();
+		//}
+
+		//Task<IView> INavigationView.PopAsync() =>
+		//	(this as INavigationView).PopAsync(true);
+
+		//async Task<IView> INavigationView.PopAsync(bool animated)
+		//{
+		//	var thing = await this.PopAsync(animated);
+		//	return thing;
+		//}
+
+		//Task<IView> INavigationView.PopModalAsync()
+		//{
+		//	throw new NotImplementedException();
+		//}
+
+		//Task<IView> INavigationView.PopModalAsync(bool animated)
+		//{
+		//	throw new NotImplementedException();
+		//}
+
+		//Task INavigationView.PushAsync(IView page) =>
+		//	(this as INavigationView).PushAsync(page, true);
+
+		//Task INavigationView.PushAsync(IView page, bool animated)
+		//{
+		//	return this.PushAsync((Page)page, animated);
+		//}
+
+		//Task INavigationView.PushModalAsync(IView page)
+		//{
+		//	throw new NotImplementedException();
+		//}
+
+		//Task INavigationView.PushModalAsync(IView page, bool animated)
+		//{
+		//	throw new NotImplementedException();
+		//}
+
+		//void INavigationView.RemovePage(IView page)
+		//{
+		//	throw new NotImplementedException();
+		//}
+
+		IView Content => this.CurrentPage;
 
 		IReadOnlyList<IView> INavigationView.NavigationStack =>
 			this.Navigation.NavigationStack;
